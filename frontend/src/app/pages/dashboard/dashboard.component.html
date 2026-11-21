@@ -1,0 +1,60 @@
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="/dashboard" aria-label="Ledgerly, ir al resumen"><span class="brand-mark" aria-hidden="true">L</span><span>LEDGERLY</span></a>
+    <nav aria-label="Navegación principal"><a class="nav-link active" href="/dashboard" aria-current="page">Resumen</a><a class="nav-link" href="#accounts">Cuentas</a><a class="nav-link" href="#activity">Movimientos</a></nav>
+    <div class="profile">
+      <div class="avatar" aria-hidden="true">{{ auth.email()?.charAt(0)?.toUpperCase() }}</div>
+      <div class="profile-copy"><strong>{{ auth.email() }}</strong><small>{{ auth.role() === 'ADMIN' ? 'Administrador' : 'Cliente' }}</small></div>
+      <button class="logout" type="button" (click)="logout()">Salir</button>
+    </div>
+  </header>
+  <main class="dashboard">
+    <section class="hero">
+      <div class="hero-copy-block"><h1>Buenos días, <span>{{ auth.email()?.split('@')?.[0] }}</span></h1><p class="hero-copy">Tu posición financiera simulada, en un solo lugar.</p></div>
+      <div class="summary-card">
+        <div class="summary-label"><span>Posición principal</span><span class="secure-badge"><i aria-hidden="true"></i> Sesión segura</span></div>
+        @if (primaryBalance; as balance) {
+          <strong>{{ balance.balance | number:'1.2-2' }} <small>{{ balance.currency }}</small></strong>
+          <small class="status-line"><i></i> Actualizado ahora</small>
+        } @else {
+          <strong>— <small>Sin cuentas</small></strong>
+          <small class="status-line">Abre tu primera cuenta para comenzar</small>
+        }
+      </div>
+    </section>
+    @if (message()) { <div class="notice success" role="status">{{ message() }}</div> }
+    @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+    <section class="content-grid"><div class="main-column">
+      <div id="accounts" class="section-heading"><div><h2>Tus cuentas</h2><p>Selecciona una cuenta para consultar sus movimientos.</p></div><span>{{ accounts().length }} {{ accounts().length === 1 ? 'cuenta' : 'cuentas' }}</span></div>
+      @if (loading()) {
+        <div class="empty-state loading-state"><span class="loader" aria-hidden="true"></span><span>Cargando tus cuentas...</span></div>
+      } @else if (accounts().length === 0) {
+        <div class="empty-state empty-card"><span class="empty-icon" aria-hidden="true">+</span><strong>Aún no tienes cuentas</strong><span>Abre una cuenta desde el panel de operaciones para comenzar.</span></div>
+      } @else {
+        <div class="account-list">
+          @for (account of accounts(); track account.id) {
+            <button class="account-card" [class.active]="selectedAccount()?.id === account.id" [attr.aria-pressed]="selectedAccount()?.id === account.id" (click)="selectAccount(account)">
+              <span class="account-icon" [class.euro]="account.currency === 'EUR'" [class.pound]="account.currency === 'GBP'">{{ formatCurrency(account.currency) }}</span>
+              <span class="account-details"><small>{{ account.currency }} · CUENTA {{ account.id.toString().padStart(6, '0') }}</small><strong>{{ account.balance | number:'1.2-4' }} <em>{{ account.currency }}</em></strong></span>
+              <span class="account-status"><i></i> Activa</span><span class="arrow" aria-hidden="true">→</span>
+            </button>
+          }
+        </div>
+      }
+      <div id="activity" class="section-heading ledger-heading"><div><h2>Actividad reciente</h2><p>{{ selectedAccount() ? 'Últimos movimientos de tu cuenta seleccionada.' : 'Selecciona una cuenta para consultar su actividad.' }}</p></div><span>{{ selectedAccount() ? 'Cuenta ' + selectedAccount()?.id : 'Sin selección' }}</span></div>
+      <div class="ledger-card">
+        @if (selectedAccount()) {
+          <div class="ledger-header"><span>Descripción</span><span>Importe</span></div>
+        }
+        @if (entries().length === 0) { <div class="empty-state">Selecciona una cuenta con movimientos para ver la actividad.</div> }
+        @for (entry of entries(); track entry.id) {
+          <div class="ledger-row"><span class="movement-icon" [class.debit]="entry.direction === 'DEBIT'" aria-hidden="true">{{ entry.direction === 'CREDIT' ? '+' : '−' }}</span><span class="movement-label"><strong>{{ entry.direction === 'CREDIT' ? 'Abono recibido' : 'Transferencia enviada' }}</strong><small>{{ entry.createdAt | date:'mediumDate' }} · {{ entry.createdAt | date:'shortTime' }}</small></span><strong [class.positive]="entry.direction === 'CREDIT'" [class.negative]="entry.direction === 'DEBIT'">{{ entry.direction === 'CREDIT' ? '+' : '-' }}{{ entry.amount | number:'1.2-4' }} {{ selectedAccount()?.currency }}</strong></div>
+        }
+      </div>
+    </div><aside class="side-column">
+      <div class="action-card"><div class="card-title"><span class="icon green" aria-hidden="true">+</span><div><h3>Abrir una cuenta</h3><p class="card-copy">Elige la moneda de tu cuenta.</p></div></div><form [formGroup]="accountForm" (ngSubmit)="createAccount()"><label for="account-currency">Moneda<select id="account-currency" formControlName="currency"><option>USD</option><option>EUR</option><option>GBP</option></select></label><button class="secondary-button" type="submit" [disabled]="busy()"><span>{{ busy() ? 'Procesando...' : 'Abrir cuenta' }}</span><span aria-hidden="true">→</span></button></form></div>
+      @if (isAdmin) { <div class="action-card admin-card"><div class="card-title"><span class="icon orange" aria-hidden="true">+</span><div><h3>Depósito simulado</h3><p class="card-copy">Solo para pruebas del sistema.</p></div></div><form [formGroup]="depositForm" (ngSubmit)="deposit()"><label for="deposit-account">Cuenta<input id="deposit-account" type="number" formControlName="accountId"></label><label for="deposit-amount">Importe<input id="deposit-amount" type="number" step="0.01" formControlName="amount"></label><button class="secondary-button dark" type="submit" [disabled]="busy()"><span>Registrar depósito</span><span aria-hidden="true">→</span></button></form></div> }
+      <div class="action-card transfer-card"><div class="card-title"><span class="icon blue" aria-hidden="true">↗</span><div><h3>Enviar dinero</h3><p class="card-copy">Transfiere entre cuentas compatibles.</p></div></div><form [formGroup]="transferForm" (ngSubmit)="transfer()"><label for="source-account">Cuenta origen<input id="source-account" type="number" formControlName="sourceAccountId"></label><label for="destination-account">Cuenta destino<input id="destination-account" type="number" formControlName="destinationAccountId"></label><div class="form-row"><label for="transfer-amount">Importe<input id="transfer-amount" type="number" step="0.01" formControlName="amount"></label><label for="transfer-currency">Moneda<select id="transfer-currency" formControlName="currency"><option>USD</option><option>EUR</option><option>GBP</option></select></label></div><button class="secondary-button" type="submit" [disabled]="busy()"><span>{{ busy() ? 'Procesando...' : 'Continuar' }}</span><span aria-hidden="true">→</span></button></form></div>
+    </aside></section>
+  </main>
+</div>

@@ -1,0 +1,24 @@
+<main class="auth-shell">
+  <section class="auth-visual">
+    <div class="brand-lockup"><span class="brand-mark" aria-hidden="true">L</span><span>LEDGERLY</span></div>
+    <div class="visual-copy">
+      <h1>Una forma más clara<br>de gestionar tu dinero.</h1>
+      <p class="description">Una plataforma bancaria simulada para practicar operaciones financieras de forma segura y transparente.</p>
+    </div>
+    <div class="visual-footer">Construido para aprender · Sin dinero real</div>
+  </section>
+  <section class="auth-card">
+    <div class="mobile-mark"><span class="brand-mark" aria-hidden="true">L</span> LEDGERLY</div>
+    <h2>{{ registerMode() ? 'Crea tu cuenta' : 'Inicia sesión' }}</h2>
+    <p class="subheading">{{ registerMode() ? 'Empieza a explorar tu banco simulado.' : 'Continúa donde lo dejaste.' }}</p>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label for="email">Email<input id="email" type="email" formControlName="email" placeholder="tu@email.com" autocomplete="email" inputmode="email"></label>
+      @if (form.controls.email.invalid && form.controls.email.touched) { <small class="field-error">Introduce un email válido.</small> }
+      <label for="password">Contraseña<input id="password" type="password" formControlName="password" placeholder="Mínimo 8 caracteres" [autocomplete]="registerMode() ? 'new-password' : 'current-password'"></label>
+      @if (form.controls.password.invalid && form.controls.password.touched) { <small class="field-error">La contraseña debe tener al menos 8 caracteres.</small> }
+      @if (error()) { <div class="error-banner" role="alert">{{ error() }}</div> }
+      <button class="primary-button" type="submit" [disabled]="loading()"><span>{{ loading() ? 'Procesando...' : (registerMode() ? 'Crear cuenta' : 'Iniciar sesión') }}</span><span aria-hidden="true">→</span></button>
+    </form>
+    <p class="switch-copy">{{ registerMode() ? '¿Ya tienes una cuenta?' : '¿Todavía no tienes cuenta?' }} <button type="button" class="text-button" (click)="toggleMode()">{{ registerMode() ? 'Inicia sesión' : 'Regístrate' }}</button></p>
+  </section>
+</main>
